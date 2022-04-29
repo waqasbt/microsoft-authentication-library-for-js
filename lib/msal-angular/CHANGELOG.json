@@ -2,6 +2,35 @@
   "name": "@azure/msal-angular",
   "entries": [
     {
+      "date": "Fri, 29 Apr 2022 23:44:22 GMT",
+      "tag": "@azure/msal-angular_v2.3.0",
+      "version": "2.3.0",
+      "comments": {
+        "minor": [
+          {
+            "author": "thomas.norling@microsoft.com",
+            "package": "@azure/msal-angular",
+            "commit": "cb93cc7e0deadefac126b23c3326c4b2aa4be142",
+            "comment": "Add support for acquiring tokens from the native broker #4531"
+          },
+          {
+            "author": "beachball",
+            "package": "@azure/msal-angular",
+            "comment": "Bump @azure/msal-browser to v2.24.0",
+            "commit": "d6a412f1e439f59f6622f6f65bf5455798a7e053"
+          }
+        ],
+        "none": [
+          {
+            "author": "rginsburg@microsoft.com",
+            "package": "@azure/msal-angular",
+            "commit": "94372ab043804ccd56334d87f7cfa6306fcb1115",
+            "comment": "Created Angular 14 RxJS 6/7 Sample Apps #4642"
+          }
+        ]
+      }
+    },
+    {
       "date": "Mon, 04 Apr 2022 21:12:41 GMT",
       "tag": "@azure/msal-angular_v2.2.0",
       "version": "2.2.0",

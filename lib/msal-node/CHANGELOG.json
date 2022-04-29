@@ -2,6 +2,29 @@
   "name": "@azure/msal-node",
   "entries": [
     {
+      "date": "Fri, 29 Apr 2022 23:44:22 GMT",
+      "tag": "@azure/msal-node_v1.8.1",
+      "version": "1.8.1",
+      "comments": {
+        "none": [
+          {
+            "author": "bmahal@microsoft.com",
+            "package": "@azure/msal-node",
+            "commit": "679deb37f3a49a804a95863fc9398fabd46e4494",
+            "comment": "Tests for SilentFlowClient- when claims are passed #4672"
+          }
+        ],
+        "patch": [
+          {
+            "author": "beachball",
+            "package": "@azure/msal-node",
+            "comment": "Bump @azure/msal-common to v6.3.0",
+            "commit": "d6a412f1e439f59f6622f6f65bf5455798a7e053"
+          }
+        ]
+      }
+    },
+    {
       "date": "Mon, 04 Apr 2022 21:12:42 GMT",
       "tag": "@azure/msal-node_v1.8.0",
       "version": "1.8.0",
