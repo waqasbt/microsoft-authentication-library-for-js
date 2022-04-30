@@ -1,123 +1,171 @@
-# MSAL Angular v2 Configuration
+# Azure Active Directory Authentication
 
-MSAL for Angular can be configured in multiple ways:
-- `MsalModule.forRoot`
-- Factory providers
-- `platformBrowserDynamic`
-- Dynamic configurations using Factory Providers and `APP_INITIALIZER`
+## Azure Active Directory Authentication
 
-This guide will detail how to leverage each method for your application.
+Azure AD is the identity platform to manage your internal and external users securely. Organizations use Azure AD to store user information like Name, ID, Email, Address, etc.
 
-## Configuration Options
+Azure Active Directory is a secure online authentication store, which can contain users and groups. Users have a username and a password which are used when you sign into an application that uses Azure AD for authentication. So for example all of the Microsoft Cloud services use Azure AD for authentication: Office 365, Dynamics 365 and Azure.
 
-`@azure/msal-angular` accepts three configuration objects:
 
-1. [Configuration](https://azuread.github.io/microsoft-authentication-library-for-js/ref/msal-browser/modules/_src_config_configuration_.html): This is the same configuration object that is used for the core `@azure/msal-browser` library. All configuration options can be found [here](https://azuread.github.io/microsoft-authentication-library-for-js/ref/msal-browser/modules/_src_config_configuration_.html).
-2. [`MsalGuardConfiguration`](https://github.com/AzureAD/microsoft-authentication-library-for-js/blob/dev/lib/msal-angular/src/msal.guard.config.ts): A set of options specifically for the Angular guard.
-3. [`MsalInterceptorConfiguration`](https://github.com/AzureAD/microsoft-authentication-library-for-js/blob/dev/lib/msal-angular/src/msal.interceptor.config.ts): A set of options specifically for the Angular interceptor.
+## About this exercise
 
-### Angular-specific configurations
+Previously we scaffolded a new Angular application in which we have integrated 
 
-* An `interactionType` must be specified on `MsalGuardConfiguration` and `MsalInterceptorConfiguration`, and can be set to `Popup` or `Redirect`.
-* The `protectedResourceMap` object on `MsalInterceptorConfiguration` is used to protect routes.
-* An optional `authRequest` object can be specified on `MsalGuardConfiguration` and `MsalInterceptorConfiguration` to set additional options. 
-* An optional `loginFailedRoute` string can be set on `MsalGuardConfiguration`. Msal Guard will redirect to this route if login is required and fails.
+* FontAwesome Library for icons
+* Bootstrap Library for styling buttons
+* We have multiple components e.g. (CreateAccountComponent, ManageAccountsComponent, DepositFundsComponent, TransferFundsComponent) in our application for which we have already configured routing.
+* There is an authorization service with two functions `Login` & `Logout`, The login function is setting up a hardcoded user properties and storing it in local storage where as logout function is removing the user properties from local storage.
+* There is an login component with login button which calls the authorization service for login functionality. 
+* There is an Toolbar Component with logout button  which calls the authorization service for logout functionality.  
+* Angular Materials SideNav having links which are navigating to these components
+* Client side authorization using Auth Guard to protect the routes.
+* Show & Hide Side Nav links based on the logged in User's role.
+* We have already registered 2 apps in azure portal(BBankUI and BBankAPI), Created App Roles in BBankAPI, assigned them to users and exposed the API
+through a default scope and set permission of this API to BBankUI App
+   
 
-Please see our [MsalInterceptor](https://github.com/AzureAD/microsoft-authentication-library-for-js/blob/dev/lib/msal-angular/docs/v2-docs/msal-interceptor.md) and [MsalGuard](https://github.com/AzureAD/microsoft-authentication-library-for-js/blob/dev/lib/msal-angular/docs/v2-docs/msal-guard.md) docs for more details on configurations, usage, and differences to MSAL Angular v1.
+For more details about how to setup the active directory configurations in Azure portal see : https://github.com/PatternsTechGit/PT_AzureAD_Setup
 
-### Configuration for redirects
 
-We recommend importing `MsalRedirectComponent` and bootstrapping with the `AppComponent` if you intend to use redirects. Please see the [redirect documentation](https://github.com/AzureAD/microsoft-authentication-library-for-js/tree/dev/lib/msal-angular/docs/v2-docs/redirects.md) for more details. 
+## In this exercise
 
-## MsalModule.forRoot
+ * We will configure the Microsoft Authentication Library in our Angular project.
+ * We will replace the fake authorization service with [MSAL service](https://azuread.github.io/microsoft-authentication-library-for-js/ref/msal-angular/classes/_msal_service_.msalservice.html) in login component
+  
 
-The `MsalModule` class contains a static method that can be called in your `app.module.ts` file:
+ Whenever our Angular Single Page Application (SPA) clicks on the login button it will redirect to the Azure Active Directory page and after logging-in it will return back to our Angular application with token. The Angular application will inject the received token in every call to .Net Core API. The API will verify the received token from Azure AD and then  will send response.
 
-```typescript
-import { NgModule } from '@angular/core';
-import { HTTP_INTERCEPTORS } from '@angular/common/http';
-import { AppComponent } from './app.component';
-import { MsalModule, MsalService, MsalGuard, MsalInterceptor, MsalBroadcastService, MsalRedirectComponent } from "@azure/msal-angular";
-import { PublicClientApplication, InteractionType, BrowserCacheLocation } from "@azure/msal-browser";
+![SPA](https://user-images.githubusercontent.com/100709775/165463550-04481e0d-dcc1-4b1e-9021-7f0cf3784798.jpeg)
 
-@NgModule({
-    imports: [
-        MsalModule.forRoot( new PublicClientApplication({ // MSAL Configuration
-            auth: {
-                clientId: "clientid",
-                authority: "https://login.microsoftonline.com/common/",
-                redirectUri: "http://localhost:4200/",
-                postLogoutRedirectUri: "http://localhost:4200/",
-                navigateToLoginRequestUrl: true
-            },
-            cache: {
-                cacheLocation : BrowserCacheLocation.LocalStorage,
-                storeAuthStateInCookie: true, // set to true for IE 11
-            },
-            system: {
-                loggerOptions: {
-                    loggerCallback: () => {},
-                    piiLoggingEnabled: false
-                }
-            }
-        }), {
-            interactionType: InteractionType.Popup, // MSAL Guard Configuration
-            authRequest: {
-              scopes: ['user.read']
-            },
-            loginFailedRoute: "/login-failed" 
-        }, {
-            interactionType: InteractionType.Redirect, // MSAL Interceptor Configuration
-            protectedResourceMap
-        })
-    ],
-    providers: [
-        {
-            provide: HTTP_INTERCEPTORS,
-            useClass: MsalInterceptor,
-            multi: true
-        },
-        MsalGuard
-    ],
-    bootstrap: [AppComponent, MsalRedirectComponent]
-})
-export class AppModule {}
+ Here are the steps to begin with 
+
+ ## Step 1: Install Microsoft Authentication Library for Angular
+
+ [Microsoft Authentication Library Angular](https://www.npmjs.com/package/@azure/msal-angular) (MSAL) enables Angular web applications to authenticate users using Azure AD work and school accounts (AAD), Microsoft personal accounts (MSA) and social identity providers like Facebook, Google, LinkedIn, Microsoft accounts, etc through Azure AD B2C service. It also enables your app to get tokens to access Microsoft Cloud services such as [Microsoft Graph](https://developer.microsoft.com/en-us/graph).
+
+ To install the MSAL in angular application use the command below : 
+ 
+ ```
+    npm install @azure/msal-browser @azure/msal-angular@latest
+ ```
+
+ ## Step 2: Setting Up Environment variable
+ We will configure the app registration, clientID and other values in `environment.ts` as below :
+
+ ```ts
+export const environment = {
+  production: false,
+  apiUrlBase: 'http://localhost:5070/api/', // Url of the API this client app will try to access.
+  clientId: '66f42264-8560-4d8b-9670-c28bb9e1a0c4', // Application (client) ID of this Angular app that was registered as client app in Azure AD App Registrations.
+  authority: 'https://login.microsoftonline.com/0c087d99-9bb7-41d4-bd58-80846660b536', // The ID of the Tenant in which this client app was registered in Azure AD.
+  redirectUri: 'http://localhost:4200', // Url where Azure AD will come back after Signing In Process completes. 
+  postLogoutRedirectUri: 'http://localhost:4200/login', //Url where Azure AD will come back after Signing Out Process completes. 
+  defaultScope: 'api://bbbankapi/default',
+};
+ ```
+
+  
+  ## Step 3: Setting Up msalConfig 
+  Create a new `auth-config.ts` file in app folder.
+
+  In this file we will configure 3 things as below :
+
+  * We will pass the configuration parameters to create an MSAL instance. 
+  * We will configure MSAL Interceptor that will inject token to all http communication.
+  * We will configure MSALGuard to restrict users to routes to a protected components.
+
+  We will replace `AuthGuard` with `MsalGuard` in app-routing.module.ts to protect DashboardComponent 
+```ts
+{ path: '', component: DashboardComponent, canActivate: [MsalGuard] }
 ```
 
-## Factory Providers
+We will configure the items MSAL things as below: 
 
-You may also provide the configuration options via factory providers.
+  ```ts
+/**
+ * This file contains authentication parameters. Contents of this file
+ * is roughly the same across other MSAL.js libraries. These parameters
+ * are used to initialize Angular and MSAL Angular configurations in
+ * in app.module.ts file.
+ */
 
-```typescript
-import {
-  MsalModule,
-  MsalService,
-  MsalInterceptor,
-  MsalInterceptorConfiguration,
-  MsalGuard,
-  MsalGuardConfiguration,
-  MsalBroadcastService, 
-  MsalRedirectComponent
-} from "@azure/msal-angular";
-import { IPublicClientApplication, PublicClientApplication, InteractionType, BrowserCacheLocation } from "@azure/msal-browser";
+import { MsalGuardConfiguration, MsalInterceptorConfiguration } from '@azure/msal-angular';
+import { LogLevel, Configuration, BrowserCacheLocation, InteractionType, IPublicClientApplication, PublicClientApplication } from '@azure/msal-browser';
+import environment from 'src/environments/environment';
 
-export function MSALInstanceFactory(): IPublicClientApplication {
-  return new PublicClientApplication({
-    auth: {
-      clientId: "6226576d-37e9-49eb-b201-ec1eeb0029b6",
-      redirectUri: "http://localhost:4200",
-      postLogoutRedirectUri: "http://localhost:4200"
+const isIE = window.navigator.userAgent.indexOf('MSIE ') > -1 || window.navigator.userAgent.indexOf('Trident/') > -1;
+
+/**
+  * Configuration object to be passed to MSAL instance on creation.
+  * For a full list of MSAL.js configuration parameters, visit:
+  * https://github.com/AzureAD/microsoft-authentication-library-for-js/blob/dev/lib/msal-browser/docs/configuration.md
+  */
+export const msalConfig: Configuration = {
+  auth: {
+    clientId: environment.clientId, // Application (client) ID of this Angular app that was registered as client app in Azure AD App Registrations.
+    authority: environment.authority, // The ID in this URI is the Id of the Tenant in which this client app was registered in Azure AD.
+    redirectUri: environment.redirectUri, // Url where Azure AD will come back after Signing In Process completes. 
+    postLogoutRedirectUri: environment.postLogoutRedirectUri, //Url where Azure AD will come back after Signing Out Process completes. 
+  },
+  cache: {
+    cacheLocation: BrowserCacheLocation.LocalStorage, // Configures cache location. "sessionStorage" is more secure, but "localStorage" gives you SSO between tabs.
+    storeAuthStateInCookie: isIE, // Set this to "true" if you are having issues on IE11 or Edge
+  },
+  system: {
+    loggerOptions: { // MSAL provides loggerOptions where we can configure logging to receive logs of all steps performed during sign in process. 
+      loggerCallback(logLevel: LogLevel, message: string) {
+        console.log(message);
+      },
+      logLevel: LogLevel.Info, // Different levels of logs are available . 'Verbose' will have most detailed information. 
+      piiLoggingEnabled: false,
     },
-    cache: {
-      cacheLocation: BrowserCacheLocation.LocalStorage,
-      storeAuthStateInCookie: isIE, // set to true for IE 11
-    },
-  });
+  },
+};
+
+/**
+ * Add here the endpoints and scopes when obtaining an access token for protected web APIs. For more information, see:
+ * https://github.com/AzureAD/microsoft-authentication-library-for-js/blob/dev/lib/msal-browser/docs/resources-and-scopes.md
+ */
+ export const protectedResources = {
+  bbbankApi: {
+    // Scopes defines what client application (this Angular app) can do in the Api.
+    // in our application all resources of api are exposed through one default scope. and App Roles are there to define what a particular user can do. 
+    // Which will be handled on API side using [Authorize(Roles="xxx")] attribute.
+    // Since all resources in the API can be accessed by one default scope we are getting token against the baseUrl. 
+    endpoint: environment.apiUrlBase,
+    scopes: [environment.defaultScope],
+    // We could have introduced multiple scopes for different types of resources om api and could have handled them using [RequireScope('xxx')] attribute on api side.
+  },
+}; 
+
+export const loginRequest = {
+  // This scope is exposed by API App and added as permission by Client app (this app) in the Azure AD Portal. 
+  // When client app (this App) will try to login with this scope, it will receive App Roles information as well in the token since App roles are also configured in API App
+  scopes: [environment.defaultScope] as any[],
+};
+
+
+/**
+ * Here we pass the configuration parameters to create an MSAL instance.
+ * For more info, visit: https://github.com/AzureAD/microsoft-authentication-library-for-js/blob/dev/lib/msal-angular/docs/v2-docs/configuration.md
+ */
+
+ export function MSALInstanceFactory(): IPublicClientApplication {
+  return new PublicClientApplication(msalConfig);
 }
 
+/**
+ * MSAL Angular will automatically retrieve tokens for resources
+ * added to protectedResourceMap. For more info, visit:
+ * https://github.com/AzureAD/microsoft-authentication-library-for-js/blob/dev/lib/msal-angular/docs/v2-docs/initialization.md#get-tokens-for-web-api-calls
+ */
+
+// This Interceptor setting will add access token to all http calls that are mentioned in  protectedResourceMap. 
+// Since we are mentioning baseUrl, So all the http calls starting with baseUrl will have access_token injected in the header that will have role and scope info in it
 export function MSALInterceptorConfigFactory(): MsalInterceptorConfiguration {
   const protectedResourceMap = new Map<string, Array<string>>();
-  protectedResourceMap.set("https://graph.microsoft.com/v1.0/me", ["user.read"]);
+
+  protectedResourceMap.set(protectedResources.bbbankApi.endpoint, protectedResources.bbbankApi.scopes);
 
   return {
     interactionType: InteractionType.Redirect,
@@ -125,399 +173,190 @@ export function MSALInterceptorConfigFactory(): MsalInterceptorConfiguration {
   };
 }
 
+/**
+ * Set your default interaction type for MSALGuard here. If you have any
+ * additional scopes you want the user to consent upon login, add them here as well.
+ */
+// Setting up MSAL on any route will automatically check if the user is logged in and will take the user to login flow if its not logged in and then will let route to proceed. 
 export function MSALGuardConfigFactory(): MsalGuardConfiguration {
-  return { 
+  return {
     interactionType: InteractionType.Redirect,
-    authRequest: {
-      scopes: ['user.read']
-    },
-    loginFailedRoute: "./login-failed"
+    authRequest: loginRequest,
   };
 }
+  ```
 
-@NgModule({
-  imports: [
-    MsalModule
+## Step 4: Configure AppModule
+
+  We will inject `MSAL_INSTANCE` , `MsalInterceptor` and `MSALGuardConfigFactory` in app.module.ts
+
+  ```ts
+  @NgModule({
+  declarations: [
+    AppComponent,
   ],
-  providers: [
+  imports: [
+    SharedModule,
+    BrowserModule,
+    AppRoutingModule,
+    FormsModule,
+    HttpClientModule,
+    BrowserAnimationsModule, // CLI adds AppRoutingModule to the AppModule's imports array
+    MsalModule,
+  ],
+  providers: [TransactionService,
     {
       provide: HTTP_INTERCEPTORS,
       useClass: MsalInterceptor,
-      multi: true
+      multi: true,
     },
     {
       provide: MSAL_INSTANCE,
-      useFactory: MSALInstanceFactory
+      useFactory: MSALInstanceFactory,
     },
     {
       provide: MSAL_GUARD_CONFIG,
-      useFactory: MSALGuardConfigFactory
+      useFactory: MSALGuardConfigFactory,
     },
     {
       provide: MSAL_INTERCEPTOR_CONFIG,
-      useFactory: MSALInterceptorConfigFactory
+      useFactory: MSALInterceptorConfigFactory,
     },
+    MsalService,
     MsalGuard,
-    MsalBroadcastService,
-    MsalService
-  ],
-  bootstrap: [AppComponent, MsalRedirectComponent]
+    MsalBroadcastService],
+  bootstrap: [AppComponent, MsalRedirectComponent],
 })
-export class AppModule { }
-```
+  ``` 
 
-## platformBrowserDynamic
 
-If you need to dynamically configure MSAL Angular (e.g. based on values returned from an API), you can use `platformBrowserDynamic`. `platformBrowserDyamic` is a platform factory, used to bootstrap the application, and is able to take in configuration options. `platformBrowserDynamic` should already be present when the Angular application is set up.
+  ## Step 5: Setting Up MSAL Login Functionality
 
-The following is an example of how to dynamically configure `@azure/msal-angular` with `platformBrowserDynamic` and a json file:
+  In Login.Component.ts component we will inject the `MsalService` and will call the `loginRedirect` function on login button click event.
 
-`app.module.ts`
-```typescript
-import {
-  MsalModule,
-  MsalInterceptor,
-  MsalService,
-} from '@azure/msal-angular';
+  We will setup the `MsalBroadcastService` for Different events which are triggered by MSAL throughout the Auth process, Here we will filter the `LOGIN_SUCCESS` event and will decode the received token then set loggedInUser properties.
 
-@NgModule({
-  imports: [
-    MsalModule
-  ],
-  providers: [
-    {
-      provide: HTTP_INTERCEPTORS,
-      useClass: MsalInterceptor,
-      multi: true
-    },
-    MsalService
-  ],
-  bootstrap: [AppComponent]
+  ```ts
+  /* eslint-disable no-underscore-dangle */
+import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { MsalBroadcastService, MsalService } from '@azure/msal-angular';
+import { AuthenticationResult, EventMessage, EventType, } from '@azure/msal-browser';
+import { Subject, takeUntil } from 'rxjs';
+import { filter } from 'rxjs/internal/operators/filter';
+import jwt_decode from 'jwt-decode';
+import AppUser from '../shared/models/app-user';
+import { loginRequest } from '../auth-config';
+
+@Component({
+  selector: 'app-login',
+  templateUrl: './login.component.html',
+  styleUrls: ['./login.component.css'],
 })
-export class AppModule { }
-```
+export default class LoginComponent implements OnInit {
+  loggedInUser: AppUser;
 
-`main.ts`
-```typescript
-import { enableProdMode } from '@angular/core';
-import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+  private readonly _destroying$ = new Subject<void>();
 
-import { AppModule } from './app/app.module';
-import { environment } from './environments/environment';
-import { MSAL_INSTANCE, MSAL_GUARD_CONFIG, MSAL_INTERCEPTOR_CONFIG } from '@azure/msal-angular';
-import { PublicClientApplication, Configuration } from '@azure/msal-browser';
+  constructor(
+    private authService: MsalService,
+    private router: Router,
+    // Different events are triggered by MSAL throughout the Auth process. You can filter upon these events to to perform custom operations. 
+    // complete list of Events are available at https://github.com/AzureAD/microsoft-authentication-library-for-js/blob/dev/lib/msal-browser/docs/events.md
+    private msalBroadcastService: MsalBroadcastService,
+  ) { }
 
-if (environment.production) {
-  enableProdMode();
-}
-
-function loggerCallback(logLevel: LogLevel, message: string) {
-  console.log("MSAL Angular: ", message);
-}
-
-fetch('/assets/configuration.json')
-  .then(response => response.json())
-  .then(json => {
-    platformBrowserDynamic([
-      { provide: MSAL_INSTANCE, useValue: new PublicClientApplication({
-        auth: json.msal.auth,
-        cache: json.msal.cache,
-        system: {
-          loggerOptions: {
-            loggerCallback,
-            logLevel: LogLevel.Info,
-            piiLoggingEnabled: false
-          }
+  ngOnInit(): void {
+    this.msalBroadcastService.msalSubject$
+      .pipe(
+        // filtering on LOGIN_SUCCESS event. Every event returns object of type EventMessage
+        filter((msg: EventMessage) => msg.eventType === EventType.LOGIN_SUCCESS),
+        // eslint-disable-next-line no-underscore-dangle
+        takeUntil(this._destroying$),
+      )
+      .subscribe((result: EventMessage) => {
+        const payload = result.payload as AuthenticationResult;
+        // Sets the account to use as the active account. If no account is passed to the acquireToken APIs, then MSAL will use this active account.
+        this.authService.instance.setActiveAccount(payload.account);
+        if (payload.account.homeAccountId) {
+          this.setLoggedInUser(payload.accessToken);
         }
-      }) },
-      { provide: MSAL_GUARD_CONFIG, useValue: {
-        interactionType: json.guard.interactionType,
-        authRequest: json.guard.authRequest,
-        loginFailedRoute: json.guard.loginFailedRoute
-      } as MsalGuardConfiguration },
-      { provide: MSAL_INTERCEPTOR_CONFIG, useValue: {
-        interactionType: json.interceptor.interactionType,
-        protectedResourceMap: new Map(json.interceptor.protectedResourceMap)
-      } as MsalInterceptorConfiguration },
-    ])
-      .bootstrapModule(AppModule)
-      .catch(err => console.error(err));
-  });
-```
+      });
+  }
 
-`src/assets/configuration.json`
-```json
-{
-  "msal": {
-    "auth": {
-      "clientId": "clientid",
-      "authority": "https://login.microsoftonline.com/common/",
-      "redirectUri": "http://localhost:4200/",
-      "postLogoutRedirectUri": "http://localhost:4200/",
-      "navigateToLoginRequestUrl": true
-    },
-    "cache": {
-      "cacheLocation": "localStorage",
-      "storeAuthStateInCookie": true
+  login() {
+    this.authService.loginRedirect(loginRequest);
+  }
+
+  setLoggedInUser(accessToken: any) {
+    //decoding the token and setting up values of logged in user.
+    const tokenInfo = this.getDecodedAccessToken(accessToken);
+    this.loggedInUser = {
+      id: tokenInfo.oid,
+      firstName: tokenInfo.given_name,
+      lastName: tokenInfo.family_name,
+      username: tokenInfo.unique_name,
+      email: tokenInfo.email,
+      roles: tokenInfo.roles,
+    } as AppUser;
+    localStorage.setItem('loggedInUser', JSON.stringify(this.loggedInUser));
+    this.router.navigate(['/'])
+      .then(() => {
+        window.location.reload();
+      });
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  getDecodedAccessToken(token: string): any {
+    try {
+      return jwt_decode(token);
+    } catch (Error) {
+      return null;
     }
-  },
-  "guard": {
-    "interactionType": "redirect",
-    "authRequest": {
-      "scopes": ["user.read"]
-    },
-    "loginFailedRoute": "/login-failed" 
-  },
-  "interceptor": {
-    "interactionType": "redirect",
-    "protectedResourceMap": [
-      ["https://graph.microsoft.com/v1.0/me", ["user.read"]]
-    ]
+  }
+
+  ngOnDestroy(): void {
+    this._destroying$.next(undefined);
+    this._destroying$.complete();
   }
 }
-```
+  ```
 
-## Dynamic configurations using Factory Providers and APP_INITIALIZER
+  ## Step 5: Setting Up MSAL Logout Functionality
 
-To dynamically configure MSAL Angular, you can use the Factory Providers with APP_INITIALIZER.
+  We will inject the `MsalService` in `toolbar.component.ts` and will call the `logout` function on logout button click event. 
 
-`src/app/config.service.ts`
-```typescript
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpBackend } from '@angular/common/http';
-import { map } from 'rxjs/operators';
+  ```ts
+ import { Component, Input, OnInit, } from '@angular/core';
+import { MatSidenav } from '@angular/material/sidenav';
+import { MsalService } from '@azure/msal-angular';
+import AppUser from '../models/app-user';
 
-@Injectable({
-  providedIn: 'root'
+@Component({
+  selector: 'app-toolbar',
+  templateUrl: './toolbar.component.html',
+  styleUrls: ['./toolbar.component.css'],
 })
-export class ConfigService {
-  private settings: any;
-  private http: HttpClient;
+export default class ToolbarComponent implements OnInit {
+  // @ts-ignore: Object is possibly 'null'.
+  @Input() inputSideNav: MatSidenav;
 
-  constructor(private readonly httpHandler: HttpBackend) {
-    this.http = new HttpClient(httpHandler);
+  loggedInUser?: AppUser;
+
+  constructor(private authService: MsalService) {
+
   }
 
-  init(endpoint: string): Promise<boolean> {
-    return new Promise<boolean>((resolve, reject) => {
-      this.http.get(endpoint).pipe(map(result => result))
-        .subscribe(value => {
-          this.settings = value;
-          resolve(true);
-        },
-        (error) => {
-          reject(error);
-        });
-    });
+  ngOnInit(): void {
+    this.loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
   }
 
-  getSettings(key?: string | Array<string>): any {
-    if (!key || (Array.isArray(key) && !key[0])) {
-      return this.settings;
-    }
-
-    if (!Array.isArray(key)) {
-      key = key.split('.');
-    }
-
-    let result = key.reduce((account: any, current: string) => account && account[current], this.settings);
-
-    return result;
+  logout(): void {
+    localStorage.removeItem('loggedInUser');
+    this.authService.logout();
   }
 }
-```
+  ```
 
-`src/app/msal-config-dynamic.module.ts`
-```typescript
-import { InjectionToken, NgModule, APP_INITIALIZER } from '@angular/core';
-import { IPublicClientApplication, PublicClientApplication, 
-    LogLevel } from '@azure/msal-browser';
-import { MsalGuard, MsalInterceptor, MsalBroadcastService,
-     MsalInterceptorConfiguration, MsalModule, MsalService,
-      MSAL_GUARD_CONFIG, MSAL_INSTANCE, MSAL_INTERCEPTOR_CONFIG, 
-      MsalGuardConfiguration } from '@azure/msal-angular';
-import { HTTP_INTERCEPTORS } from '@angular/common/http';
-import { ConfigService } from './config.service';
-
-const AUTH_CONFIG_URL_TOKEN = new InjectionToken<string>('AUTH_CONFIG_URL');
-
-export function initializerFactory(env: ConfigService, configUrl: string): any {
-    const promise = env.init(configUrl).then((value) => {
-        console.log('finished getting configurations dynamically.');
-    });
-    return () => promise;
-}
-
-const isIE = window.navigator.userAgent.indexOf("MSIE ") > -1 || window.navigator.userAgent.indexOf("Trident/") > -1; // Remove this line to use Angular Universal
-
-export function loggerCallback(logLevel: LogLevel, message: string) {
-  console.log(message);
-}
-
-export function MSALInstanceFactory(config: ConfigService): IPublicClientApplication {
-  return new PublicClientApplication({
-    auth: config.getSettings('msal').auth,
-    cache: config.getSettings('msal').cache,
-    system: {
-      loggerOptions: {
-        loggerCallback,
-        logLevel: LogLevel.Info,
-        piiLoggingEnabled: false
-      }
-    }
-  });
-}
-
-export function MSALInterceptorConfigFactory(config: ConfigService): MsalInterceptorConfiguration {
-    const protectedResourceMap = new Map<string, Array<string>>(config.getSettings('interceptor').protectedResourceMap)
-  
-    return {
-      interactionType: config.getSettings('interceptor').interactionType,
-      protectedResourceMap
-    };
-  }
-  
-export function MSALGuardConfigFactory(config: ConfigService): MsalGuardConfiguration {
-    return { 
-      interactionType: config.getSettings('guard').interactionType,
-      authRequest: config.getSettings('guard').authRequest,
-      loginFailedRoute: config.getSettings('guard').loginFailedRoute
-    };
-}
-
-@NgModule({
-    providers: [],
-    imports: [MsalModule]
-})
-export class MsalConfigDynamicModule {
-
-    static forRoot(configFile: string) {
-        return {
-            ngModule: MsalConfigDynamicModule,
-            providers: [
-                ConfigService,
-                { provide: AUTH_CONFIG_URL_TOKEN, useValue: configFile },
-                { provide: APP_INITIALIZER, useFactory: initializerFactory,
-                     deps: [ConfigService, AUTH_CONFIG_URL_TOKEN], multi: true },
-                {
-                    provide: MSAL_INSTANCE,
-                    useFactory: MSALInstanceFactory,
-                    deps: [ConfigService]
-                },
-                {
-                    provide: MSAL_GUARD_CONFIG,
-                    useFactory: MSALGuardConfigFactory,
-                    deps: [ConfigService]
-                },
-                {
-                    provide: MSAL_INTERCEPTOR_CONFIG,
-                    useFactory: MSALInterceptorConfigFactory,
-                    deps: [ConfigService]
-                },
-                MsalService,
-                MsalGuard,
-                MsalBroadcastService,
-                {
-                    provide: HTTP_INTERCEPTORS,
-                    useClass: MsalInterceptor,
-                    multi: true
-                }
-            ]
-        };
-    }
-}
-```
-`src/app/app.module.ts`
-```typescript
-import { BrowserModule } from '@angular/platform-browser';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { NgModule } from '@angular/core';
-
-import { MatButtonModule } from '@angular/material/button';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatListModule } from '@angular/material/list';
-
-import { AppRoutingModule } from './app-routing.module';
-import { AppComponent } from './app.component';
-import { HomeComponent } from './home/home.component';
-import { ProfileComponent } from './profile/profile.component';
-
-import { HttpClientModule } from '@angular/common/http';
-import { MsalRedirectComponent } from '@azure/msal-angular';
-import { DetailComponent } from './detail/detail.component';
-import { MsalConfigDynamicModule } from './msal-config-dynamic.module';
-
-@NgModule({
-  declarations: [
-    AppComponent,
-    HomeComponent,
-    ProfileComponent,
-    DetailComponent
-  ],
-  imports: [
-    BrowserModule,
-    BrowserAnimationsModule,
-    AppRoutingModule,
-    MatButtonModule,
-    MatToolbarModule,
-    MatListModule,
-    HttpClientModule,
-    MsalConfigDynamicModule.forRoot('assets/configuration.json')
-  ],
-  providers: [],
-  bootstrap: [AppComponent, MsalRedirectComponent]
-})
-export class AppModule { }
-```
-
-`src/assets/configuration.json`
-```json
-{
-  "msal": {
-    "auth": {
-      "clientId": "clientid",
-      "authority": "https://login.microsoftonline.com/common/",
-      "redirectUri": "http://localhost:4200/",
-      "postLogoutRedirectUri": "http://localhost:4200/",
-      "navigateToLoginRequestUrl": true
-    },
-    "cache": {
-      "cacheLocation": "localStorage",
-      "storeAuthStateInCookie": true
-    }
-  },
-  "guard": {
-    "interactionType": "redirect",
-    "authRequest": {
-      "scopes": ["user.read"]
-    },
-    "loginFailedRoute": "/login-failed" 
-  },
-  "interceptor": {
-    "interactionType": "redirect",
-    "protectedResourceMap": [
-      ["https://graph.microsoft.com/v1.0/me", ["user.read"]]
-    ]
-  }
-}
-```
-
-### MsalGuard - Dynamic auth request
-
-The **MsalGuard** also allows you to dynamically change the **authRequest** at runtime. This allow you to pick a different authority for a route, or to dynamically add scopes based on the **RouterStateSnapshot**.
-
-```js
-export function MSALGuardConfigFactory(): MsalGuardConfiguration {
-  return { 
-    interactionType: InteractionType.Redirect,
-    authRequest: (authService, state) => {
-      return {
-        scopes: state.root.url.some(x => x.path === 'calendar')
-          ? ['user.read', '	Calendars.Read']
-          : ['user.read']
-      }
-    },
-    loginFailedRoute: "./login-failed"
-  };
-}
-```
+Run the project and see its working. 
+ 
